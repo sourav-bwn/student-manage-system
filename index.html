@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Manage System by Sourav</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ====== LOGIN PAGE ====== -->
+<div id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-icon"><i class="fas fa-graduation-cap"></i></div>
+      <h1>Student Manage System</h1>
+      <p class="login-subtitle">by Sourav</p>
+    </div>
+    <form id="loginForm" class="login-form">
+      <div class="form-group">
+        <label for="loginRole"><i class="fas fa-user-tag"></i> Role</label>
+        <select id="loginRole" required>
+          <option value="">Select Role</option>
+          <option value="admin">Admin (HOD)</option>
+          <option value="staff">Staff / Teacher</option>
+          <option value="student">Student</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="loginEmail"><i class="fas fa-envelope"></i> Email</label>
+        <input type="email" id="loginEmail" placeholder="Enter your email" required />
+      </div>
+      <div class="form-group">
+        <label for="loginPassword"><i class="fas fa-lock"></i> Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter your password" required />
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">
+        <i class="fas fa-sign-in-alt"></i> Sign In
+      </button>
+      <p id="loginError" class="login-error"></p>
+    </form>
+    <div class="login-footer">
+      <p><strong>Demo Credentials:</strong></p>
+      <p>Admin: admin@admin.com / admin123</p>
+      <p>Staff: staff@staff.com / staff123</p>
+      <p>Student: student@student.com / student123</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MAIN APP ====== -->
+<div id="appContainer" class="app-container" style="display:none;">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-graduation-cap"></i>
+      <span>SMS by Sourav</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar" id="userAvatar">A</div>
+      <div>
+        <p class="user-name" id="userName">Admin</p>
+        <p class="user-role" id="userRole">Administrator</p>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav">
+      <!-- dynamically populated -->
+    </nav>
+    <div class="sidebar-footer">
+      <button id="logoutBtn" class="btn btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <button id="sidebarToggle" class="sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <h2 id="pageTitle">Dashboard</h2>
+      <div class="topbar-right">
+        <span id="currentDateTime" class="datetime"></span>
+      </div>
+    </header>
+    <main id="mainContent" class="main-content">
+      <!-- content rendered by JS -->
+    </main>
+  </div>
+</div>
+
+<!-- ====== MODAL ====== -->
+<div id="modalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle">Modal Title</h3>
+      <button id="modalClose" class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- dynamic -->
+    </div>
+    <div class="modal-footer" id="modalFooter">
+      <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
