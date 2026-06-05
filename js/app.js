@@ -1,24 +1,87 @@
 /* ===================================================================
    Student Manage System by Sourav - Complete Application
-   Firebase + Firestore Edition
    =================================================================== */
 
-// ========================= FIREBASE INIT =========================
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-const COLLECTIONS = ['users', 'staff', 'students', 'courses', 'subjects', 'attendance', 'results', 'leaves', 'feedbacks'];
-
 // ========================= DATA LAYER =========================
-async function loadAllCollections() {
-  const promises = COLLECTIONS.map(async (name) => {
-    const snapshot = await db.collection(name).get();
-    state.data[name] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  });
-  await Promise.all(promises);
+const DB_KEY = 'sms_data';
+const SESSION_KEY = 'sms_session';
+
+const defaultData = {
+  users: [
+    { id: 1, name: 'Admin HOD', email: 'admin@admin.com', password: 'admin123', role: 'admin' },
+    { id: 2, name: 'John Teacher', email: 'staff@staff.com', password: 'staff123', role: 'staff' },
+    { id: 3, name: 'Jane Student', email: 'student@student.com', password: 'student123', role: 'student' },
+  ],
+  staff: [
+    { id: 1, name: 'John Teacher', email: 'staff@staff.com', phone: '9876543210', courseId: 1, address: 'New York, USA' },
+    { id: 2, name: 'Sarah Wilson', email: 'sarah@staff.com', phone: '8765432109', courseId: 2, address: 'Los Angeles, USA' },
+  ],
+  students: [
+    { id: 1, name: 'Jane Student', email: 'student@student.com', phone: '9876543210', courseId: 1, semester: 3, address: 'Boston, USA', dob: '2002-05-15' },
+    { id: 2, name: 'Bob Smith', email: 'bob@test.com', phone: '5551234567', courseId: 2, semester: 2, address: 'Chicago, USA', dob: '2003-08-22' },
+    { id: 3, name: 'Alice Johnson', email: 'alice@test.com', phone: '5559876543', courseId: 1, semester: 1, address: 'Seattle, USA', dob: '2004-01-10' },
+    { id: 4, name: 'Charlie Brown', email: 'charlie@test.com', phone: '5554567890', courseId: 3, semester: 2, address: 'Denver, USA', dob: '2003-11-30' },
+    { id: 5, name: 'Diana Prince', email: 'diana@test.com', phone: '5557890123', courseId: 1, semester: 3, address: 'Miami, USA', dob: '2002-07-08' },
+    { id: 6, name: 'Eve Adams', email: 'eve@test.com', phone: '5553456789', courseId: 2, semester: 1, address: 'Portland, USA', dob: '2004-03-18' },
+  ],
+  courses: [
+    { id: 1, name: 'BCA' },
+    { id: 2, name: 'BBA' },
+    { id: 3, name: 'B.Sc' },
+  ],
+  subjects: [
+    { id: 1, name: 'Python Programming', code: 'CS101', courseId: 1, semester: 1 },
+    { id: 2, name: 'Database Management', code: 'CS102', courseId: 1, semester: 1 },
+    { id: 3, name: 'Operating Systems', code: 'CS103', courseId: 1, semester: 2 },
+    { id: 4, name: 'Data Structures', code: 'CS104', courseId: 1, semester: 2 },
+    { id: 5, name: 'Computer Networks', code: 'CS105', courseId: 1, semester: 3 },
+    { id: 6, name: 'Business Management', code: 'BA201', courseId: 2, semester: 1 },
+    { id: 7, name: 'Accounting', code: 'BA202', courseId: 2, semester: 2 },
+    { id: 8, name: 'Marketing', code: 'BA203', courseId: 2, semester: 3 },
+    { id: 9, name: 'Physics', code: 'SC301', courseId: 3, semester: 1 },
+    { id: 10, name: 'Chemistry', code: 'SC302', courseId: 3, semester: 2 },
+  ],
+  attendance: [],
+  results: [],
+  leaves: [],
+  feedbacks: [],
+  nextId: { users: 4, staff: 3, students: 7, courses: 4, subjects: 11, attendance: 1, results: 1, leaves: 1, feedbacks: 1 },
+};
+
+function getData() {
+  const raw = localStorage.getItem(DB_KEY);
+  if (raw) {
+    try { return JSON.parse(raw); } catch (e) { /* ignore */ }
+  }
+  localStorage.setItem(DB_KEY, JSON.stringify(defaultData));
+  return JSON.parse(JSON.stringify(defaultData));
 }
 
-// ========================= NAV ITEMS =========================
+function saveData(data) {
+  localStorage.setItem(DB_KEY, JSON.stringify(data));
+}
+
+function getNextId(data, key) {
+  return data.nextId[key]++;
+}
+
+function getSession() {
+  const raw = sessionStorage.getItem(SESSION_KEY);
+  if (raw) {
+    try { return JSON.parse(raw); } catch (e) { /* ignore */ }
+  }
+  return null;
+}
+
+function setSession(user) {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+// ========================= AUTH =========================
 const NAV_ITEMS = {
   admin: [
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie' },
@@ -79,13 +142,13 @@ function capitalize(s) {
 // ========================= STATE =========================
 let state = {
   user: null,
-  data: { users: [], staff: [], students: [], courses: [], subjects: [], attendance: [], results: [], leaves: [], feedbacks: [] },
+  data: null,
   currentPage: 'dashboard',
   chartInstances: {},
-  dataReady: false,
 };
 
 // ========================= RENDER FUNCTIONS =========================
+
 function renderSidebar() {
   const nav = document.getElementById('sidebarNav');
   const items = NAV_ITEMS[state.user.role] || [];
@@ -107,13 +170,14 @@ function renderSidebar() {
 
 function navigateTo(page) {
   state.currentPage = page;
-  if (!state.dataReady) return;
   renderSidebar();
   renderPage(page);
   if (window.innerWidth <= 768) {
     document.getElementById('sidebar').classList.remove('open');
   }
 }
+
+// ========================= PAGES =========================
 
 function renderPage(page) {
   const main = document.getElementById('mainContent');
@@ -165,9 +229,14 @@ function renderPage(page) {
 function renderDashboard(container) {
   const data = state.data;
   const user = state.user;
-  if (user.role === 'admin') renderAdminDashboard(container, data);
-  else if (user.role === 'staff') renderStaffDashboard(container, data);
-  else renderStudentDashboard(container, data);
+
+  if (user.role === 'admin') {
+    renderAdminDashboard(container, data);
+  } else if (user.role === 'staff') {
+    renderStaffDashboard(container, data);
+  } else {
+    renderStudentDashboard(container, data);
+  }
 }
 
 function renderAdminDashboard(container, data) {
@@ -176,7 +245,7 @@ function renderAdminDashboard(container, data) {
   const totalCourses = data.courses.length;
   const totalSubjects = data.subjects.length;
   const pendingLeaves = data.leaves.filter(l => l.status === 'pending').length;
-  const unreadFeedback = data.feedbacks.filter(f => !f.reply).length;
+  const unreadFeedback = data.feedbacks.filter(f => f.reply === null || f.reply === undefined).length;
 
   container.innerHTML = `
     <div class="stats-grid">
@@ -197,6 +266,7 @@ function renderAdminDashboard(container, data) {
     const courseLabels = data.courses.map(c => c.name);
     const courseCounts = data.courses.map(c => data.students.filter(s => s.courseId === c.id).length);
     renderChart('chartCourse', 'bar', courseLabels, courseCounts, ['#4f46e5', '#8b5cf6', '#06b6d4', '#10b981']);
+
     const present = data.attendance.filter(a => a.status === 'present').length;
     const absent = data.attendance.filter(a => a.status === 'absent').length;
     renderChart('chartAttendance', 'doughnut', ['Present', 'Absent'], [present || 1, absent || 1], ['#10b981', '#ef4444']);
@@ -226,6 +296,7 @@ function renderStaffDashboard(container, data) {
     const present = data.attendance.filter(a => a.status === 'present').length;
     const absent = data.attendance.filter(a => a.status === 'absent').length;
     renderChart('chartStaffAtt', 'doughnut', ['Present', 'Absent'], [present || 1, absent || 1], ['#10b981', '#ef4444']);
+
     const pass = data.results.filter(r => r.score >= 40).length;
     const fail = data.results.filter(r => r.score < 40).length;
     renderChart('chartStaffResults', 'doughnut', ['Pass', 'Fail'], [pass || 1, fail || 1], ['#3b82f6', '#f59e0b']);
@@ -254,6 +325,7 @@ function renderStudentDashboard(container, data) {
 
   setTimeout(() => {
     renderChart('chartStdAtt', 'doughnut', ['Present', 'Absent'], [present || 1, absent || 1], ['#10b981', '#ef4444']);
+
     if (myResults.length) {
       const labels = myResults.map(r => getSubjectName(data, r.subjectId));
       const scores = myResults.map(r => r.score);
@@ -288,8 +360,8 @@ function renderStaff(container) {
                 <td>${getCourseName(data, s.courseId)}</td>
                 <td>
                   <div class="action-btns">
-                    <button class="btn btn-info btn-sm" onclick="openStaffModal('${s.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteStaff('${s.id}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-info btn-sm" onclick="openStaffModal(${s.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteStaff(${s.id})"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
               </tr>
@@ -301,7 +373,7 @@ function renderStaff(container) {
   `;
 }
 
-async function openStaffModal(id) {
+function openStaffModal(id) {
   const data = state.data;
   const staff = id ? data.staff.find(s => s.id === id) : null;
   showModal(
@@ -333,35 +405,29 @@ async function openStaffModal(id) {
         </div>
       </div>
     `,
-    async () => {
+    () => {
       const name = document.getElementById('staffName').value.trim();
       const email = document.getElementById('staffEmail').value.trim();
       const phone = document.getElementById('staffPhone').value.trim();
-      const courseId = document.getElementById('staffCourse').value;
+      const courseId = parseInt(document.getElementById('staffCourse').value);
       const address = document.getElementById('staffAddress').value.trim();
       if (!name || !email) { alert('Name and Email are required.'); return; }
-
       if (id) {
-        await db.collection('staff').doc(id).set({ name, email, phone, courseId, address }, { merge: true });
         const s = data.staff.find(x => x.id === id);
-        if (s) Object.assign(s, { name, email, phone, courseId, address });
+        if (s) { s.name = name; s.email = email; s.phone = phone; s.courseId = courseId; s.address = address; }
       } else {
-        const cred = await auth.createUserWithEmailAndPassword(email, 'staff123');
-        const uid = cred.user.uid;
-        await db.collection('users').doc(uid).set({ name, email, role: 'staff' });
-        await db.collection('staff').doc(uid).set({ name, email, phone, courseId, address });
-        data.staff.push({ id: uid, name, email, phone, courseId, address });
-        data.users.push({ id: uid, name, email, role: 'staff' });
+        data.staff.push({ id: getNextId(data, 'staff'), name, email, phone, courseId, address });
+        data.users.push({ id: getNextId(data, 'users'), name, email, password: 'staff123', role: 'staff' });
       }
-      closeModal(); navigateTo('staff');
+      saveData(data); closeModal(); navigateTo('staff');
     }
   );
 }
 
-async function deleteStaff(id) {
+function deleteStaff(id) {
   if (!confirm('Delete this staff member?')) return;
-  await db.collection('staff').doc(id).delete();
   state.data.staff = state.data.staff.filter(s => s.id !== id);
+  saveData(state.data);
   navigateTo('staff');
 }
 
@@ -390,8 +456,8 @@ function renderStudents(container) {
                 <td>${s.phone || '-'}</td>
                 <td>
                   <div class="action-btns">
-                    <button class="btn btn-info btn-sm" onclick="openStudentModal('${s.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-info btn-sm" onclick="openStudentModal(${s.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
               </tr>
@@ -403,7 +469,7 @@ function renderStudents(container) {
   `;
 }
 
-async function openStudentModal(id) {
+function openStudentModal(id) {
   const data = state.data;
   const student = id ? data.students.find(s => s.id === id) : null;
   showModal(
@@ -444,37 +510,31 @@ async function openStudentModal(id) {
         </div>
       </div>
     `,
-    async () => {
+    () => {
       const name = document.getElementById('studName').value.trim();
       const email = document.getElementById('studEmail').value.trim();
       const phone = document.getElementById('studPhone').value.trim();
       const dob = document.getElementById('studDob').value;
-      const courseId = document.getElementById('studCourse').value;
+      const courseId = parseInt(document.getElementById('studCourse').value);
       const semester = parseInt(document.getElementById('studSemester').value);
       const address = document.getElementById('studAddress').value.trim();
       if (!name || !email || !courseId) { alert('Name, Email, and Course are required.'); return; }
-
       if (id) {
-        await db.collection('students').doc(id).set({ name, email, phone, dob, courseId, semester, address }, { merge: true });
         const s = data.students.find(x => x.id === id);
-        if (s) Object.assign(s, { name, email, phone, dob, courseId, semester, address });
+        if (s) { Object.assign(s, { name, email, phone, dob, courseId, semester, address }); }
       } else {
-        const cred = await auth.createUserWithEmailAndPassword(email, 'student123');
-        const uid = cred.user.uid;
-        await db.collection('users').doc(uid).set({ name, email, role: 'student' });
-        await db.collection('students').doc(uid).set({ name, email, phone, dob, courseId, semester, address });
-        data.students.push({ id: uid, name, email, phone, dob, courseId, semester, address });
-        data.users.push({ id: uid, name, email, role: 'student' });
+        data.students.push({ id: getNextId(data, 'students'), name, email, phone, dob, courseId, semester, address });
+        data.users.push({ id: getNextId(data, 'users'), name, email, password: 'student123', role: 'student' });
       }
-      closeModal(); navigateTo('students');
+      saveData(data); closeModal(); navigateTo('students');
     }
   );
 }
 
-async function deleteStudent(id) {
+function deleteStudent(id) {
   if (!confirm('Delete this student?')) return;
-  await db.collection('students').doc(id).delete();
   state.data.students = state.data.students.filter(s => s.id !== id);
+  saveData(state.data);
   navigateTo('students');
 }
 
@@ -501,8 +561,8 @@ function renderCourses(container) {
                 <td>${data.subjects.filter(s => s.courseId === c.id).length}</td>
                 <td>
                   <div class="action-btns">
-                    <button class="btn btn-info btn-sm" onclick="openCourseModal('${c.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteCourse('${c.id}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-info btn-sm" onclick="openCourseModal(${c.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCourse(${c.id})"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
               </tr>
@@ -514,32 +574,26 @@ function renderCourses(container) {
   `;
 }
 
-async function openCourseModal(id) {
+function openCourseModal(id) {
   const data = state.data;
   const course = id ? data.courses.find(c => c.id === id) : null;
   showModal(
     course ? 'Edit Course' : 'Add Course',
     `<div class="form-group"><label><i class="fas fa-book"></i> Course Name</label><input type="text" id="courseName" value="${course ? course.name : ''}" placeholder="e.g. BCA" /></div>`,
-    async () => {
+    () => {
       const name = document.getElementById('courseName').value.trim();
       if (!name) { alert('Course name is required.'); return; }
-      if (id) {
-        await db.collection('courses').doc(id).set({ name }, { merge: true });
-        const c = data.courses.find(x => x.id === id);
-        if (c) c.name = name;
-      } else {
-        const docRef = await db.collection('courses').add({ name });
-        data.courses.push({ id: docRef.id, name });
-      }
-      closeModal(); navigateTo('courses');
+      if (id) { const c = data.courses.find(x => x.id === id); if (c) c.name = name; }
+      else { data.courses.push({ id: getNextId(data, 'courses'), name }); }
+      saveData(data); closeModal(); navigateTo('courses');
     }
   );
 }
 
-async function deleteCourse(id) {
+function deleteCourse(id) {
   if (!confirm('Delete this course? Related subjects may be affected.')) return;
-  await db.collection('courses').doc(id).delete();
   state.data.courses = state.data.courses.filter(c => c.id !== id);
+  saveData(state.data);
   navigateTo('courses');
 }
 
@@ -567,8 +621,8 @@ function renderSubjects(container) {
                 <td><span class="badge badge-info">Sem ${s.semester}</span></td>
                 <td>
                   <div class="action-btns">
-                    <button class="btn btn-info btn-sm" onclick="openSubjectModal('${s.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteSubject('${s.id}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-info btn-sm" onclick="openSubjectModal(${s.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSubject(${s.id})"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
               </tr>
@@ -580,7 +634,7 @@ function renderSubjects(container) {
   `;
 }
 
-async function openSubjectModal(id) {
+function openSubjectModal(id) {
   const data = state.data;
   const subj = id ? data.subjects.find(s => s.id === id) : null;
   showModal(
@@ -609,29 +663,23 @@ async function openSubjectModal(id) {
         </div>
       </div>
     `,
-    async () => {
+    () => {
       const name = document.getElementById('subjName').value.trim();
       const code = document.getElementById('subjCode').value.trim();
-      const courseId = document.getElementById('subjCourse').value;
+      const courseId = parseInt(document.getElementById('subjCourse').value);
       const semester = parseInt(document.getElementById('subjSemester').value);
       if (!name || !code || !courseId) { alert('Name, Code, and Course are required.'); return; }
-      if (id) {
-        await db.collection('subjects').doc(id).set({ name, code, courseId, semester }, { merge: true });
-        const s = data.subjects.find(x => x.id === id);
-        if (s) Object.assign(s, { name, code, courseId, semester });
-      } else {
-        const docRef = await db.collection('subjects').add({ name, code, courseId, semester });
-        data.subjects.push({ id: docRef.id, name, code, courseId, semester });
-      }
-      closeModal(); navigateTo('subjects');
+      if (id) { const s = data.subjects.find(x => x.id === id); if (s) Object.assign(s, { name, code, courseId, semester }); }
+      else { data.subjects.push({ id: getNextId(data, 'subjects'), name, code, courseId, semester }); }
+      saveData(data); closeModal(); navigateTo('subjects');
     }
   );
 }
 
-async function deleteSubject(id) {
+function deleteSubject(id) {
   if (!confirm('Delete this subject?')) return;
-  await db.collection('subjects').doc(id).delete();
   state.data.subjects = state.data.subjects.filter(s => s.id !== id);
+  saveData(state.data);
   navigateTo('subjects');
 }
 
@@ -694,8 +742,8 @@ function renderLeaves(container) {
                 <td><span class="badge ${l.status === 'approved' ? 'badge-success' : l.status === 'rejected' ? 'badge-danger' : 'badge-warning'}">${capitalize(l.status)}</span></td>
                 <td>
                   ${l.status === 'pending' ? `<div class="action-btns">
-                    <button class="btn btn-success btn-sm" onclick="approveLeave('${l.id}')"><i class="fas fa-check"></i></button>
-                    <button class="btn btn-danger btn-sm" onclick="rejectLeave('${l.id}')"><i class="fas fa-times"></i></button>
+                    <button class="btn btn-success btn-sm" onclick="approveLeave(${l.id})"><i class="fas fa-check"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="rejectLeave(${l.id})"><i class="fas fa-times"></i></button>
                   </div>` : '-'}
                 </td>
               </tr>
@@ -707,18 +755,16 @@ function renderLeaves(container) {
   `;
 }
 
-async function approveLeave(id) {
-  await db.collection('leaves').doc(id).set({ status: 'approved' }, { merge: true });
+function approveLeave(id) {
   const l = state.data.leaves.find(x => x.id === id);
   if (l) l.status = 'approved';
-  navigateTo('leaves');
+  saveData(state.data); navigateTo('leaves');
 }
 
-async function rejectLeave(id) {
-  await db.collection('leaves').doc(id).set({ status: 'rejected' }, { merge: true });
+function rejectLeave(id) {
   const l = state.data.leaves.find(x => x.id === id);
   if (l) l.status = 'rejected';
-  navigateTo('leaves');
+  saveData(state.data); navigateTo('leaves');
 }
 
 // ========== ADMIN: FEEDBACK ==========
@@ -741,7 +787,7 @@ function renderFeedback(container) {
                 <td>${f.message}</td>
                 <td>${f.reply ? f.reply : '<span class="badge badge-warning">Pending</span>'}</td>
                 <td>
-                  ${!f.reply ? `<button class="btn btn-primary btn-sm" onclick="replyFeedback('${f.id}')"><i class="fas fa-reply"></i> Reply</button>` : '-'}
+                  ${!f.reply ? `<button class="btn btn-primary btn-sm" onclick="replyFeedback(${f.id})"><i class="fas fa-reply"></i> Reply</button>` : '-'}
                 </td>
               </tr>
             `).join('') : `<tr><td colspan="6"><div class="empty-state"><p>No feedback yet.</p></div></td></tr>`}
@@ -752,19 +798,18 @@ function renderFeedback(container) {
   `;
 }
 
-async function replyFeedback(id) {
+function replyFeedback(id) {
   const data = state.data;
   const f = data.feedbacks.find(x => x.id === id);
   if (!f) return;
   showModal(
     'Reply to Feedback',
     `<div class="form-group"><label><i class="fas fa-reply"></i> Your Reply</label><textarea id="replyText" placeholder="Write your reply...">${f.reply || ''}</textarea></div>`,
-    async () => {
+    () => {
       const reply = document.getElementById('replyText').value.trim();
       if (!reply) { alert('Reply cannot be empty.'); return; }
-      await db.collection('feedbacks').doc(id).set({ reply }, { merge: true });
       f.reply = reply;
-      closeModal(); navigateTo('feedback');
+      saveData(data); closeModal(); navigateTo('feedback');
     }
   );
 }
@@ -820,7 +865,7 @@ function renderTakeAttendance(container) {
 
 function updateAttendanceStudents() {
   const data = state.data;
-  const courseId = document.getElementById('attCourse').value;
+  const courseId = parseInt(document.getElementById('attCourse').value);
   const semester = parseInt(document.getElementById('attSemester').value);
   const students = data.students.filter(s => s.courseId === courseId && s.semester === semester);
   const tbody = document.getElementById('attendanceTableBody');
@@ -839,10 +884,10 @@ function updateAttendanceStudents() {
   `).join('');
 }
 
-async function submitAttendance() {
+function submitAttendance() {
   const data = state.data;
-  const courseId = document.getElementById('attCourse').value;
-  const subjectId = document.getElementById('attSubject').value;
+  const courseId = parseInt(document.getElementById('attCourse').value);
+  const subjectId = parseInt(document.getElementById('attSubject').value);
   const date = document.getElementById('attDate').value;
   const semester = parseInt(document.getElementById('attSemester').value);
   const students = data.students.filter(s => s.courseId === courseId && s.semester === semester);
@@ -850,22 +895,25 @@ async function submitAttendance() {
   if (!students.length) { alert('No students to mark attendance for.'); return; }
 
   let count = 0;
-  const batch = db.batch();
   students.forEach(s => {
     const status = document.querySelector(`input[name="att_${s.id}"]:checked`);
     if (status) {
-      const docRef = db.collection('attendance').doc();
-      batch.set(docRef, {
-        studentId: s.id, courseId, subjectId, semester, date,
-        status: status.value, markedBy: state.user.id,
+      data.attendance.push({
+        id: getNextId(data, 'attendance'),
+        studentId: s.id,
+        courseId,
+        subjectId,
+        semester,
+        date,
+        status: status.value,
+        markedBy: state.user.id,
       });
-      data.attendance.push({ id: docRef.id, studentId: s.id, courseId, subjectId, semester, date, status: status.value, markedBy: state.user.id });
       count++;
     }
   });
 
   if (count) {
-    await batch.commit();
+    saveData(data);
     alert(`${count} attendance records saved successfully!`);
     navigateTo('take-attendance');
   } else {
@@ -897,8 +945,8 @@ function renderStaffResults(container) {
                 <td><span class="badge ${r.score >= 80 ? 'badge-success' : r.score >= 40 ? 'badge-warning' : 'badge-danger'}">${r.score >= 80 ? 'A' : r.score >= 60 ? 'B' : r.score >= 40 ? 'C' : 'F'}</span></td>
                 <td>
                   <div class="action-btns">
-                    <button class="btn btn-info btn-sm" onclick="openResultModal('${r.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteResult('${r.id}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-info btn-sm" onclick="openResultModal(${r.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteResult(${r.id})"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
               </tr>
@@ -910,7 +958,7 @@ function renderStaffResults(container) {
   `;
 }
 
-async function openResultModal(id) {
+function openResultModal(id) {
   const data = state.data;
   const result = id ? data.results.find(r => r.id === id) : null;
   showModal(
@@ -941,29 +989,27 @@ async function openResultModal(id) {
         </div>
       </div>
     `,
-    async () => {
-      const studentId = document.getElementById('resultStudent').value;
-      const subjectId = document.getElementById('resultSubject').value;
+    () => {
+      const studentId = parseInt(document.getElementById('resultStudent').value);
+      const subjectId = parseInt(document.getElementById('resultSubject').value);
       const score = parseInt(document.getElementById('resultScore').value);
       const remarks = document.getElementById('resultRemarks').value.trim();
       if (!studentId || !subjectId || isNaN(score)) { alert('Student, Subject, and Score are required.'); return; }
       if (id) {
-        await db.collection('results').doc(id).set({ studentId, subjectId, score, remarks }, { merge: true });
         const r = data.results.find(x => x.id === id);
         if (r) Object.assign(r, { studentId, subjectId, score, remarks });
       } else {
-        const docRef = await db.collection('results').add({ studentId, subjectId, score, remarks });
-        data.results.push({ id: docRef.id, studentId, subjectId, score, remarks });
+        data.results.push({ id: getNextId(data, 'results'), studentId, subjectId, score, remarks });
       }
-      closeModal(); navigateTo('results');
+      saveData(data); closeModal(); navigateTo('results');
     }
   );
 }
 
-async function deleteResult(id) {
+function deleteResult(id) {
   if (!confirm('Delete this result?')) return;
-  await db.collection('results').doc(id).delete();
   state.data.results = state.data.results.filter(r => r.id !== id);
+  saveData(state.data);
   navigateTo('results');
 }
 
@@ -1018,18 +1064,24 @@ function renderApplyLeave(container) {
   `;
 }
 
-async function submitLeave() {
+function submitLeave() {
   const data = state.data;
   const fromDate = document.getElementById('leaveFrom').value;
   const toDate = document.getElementById('leaveTo').value;
   const reason = document.getElementById('leaveReason').value.trim();
   if (!fromDate || !toDate || !reason) { alert('All fields are required.'); return; }
   if (fromDate > toDate) { alert('From date cannot be after To date.'); return; }
-  const docRef = await db.collection('leaves').add({
-    staffId: state.user.id, studentId: null, role: 'staff',
-    fromDate, toDate, reason, status: 'pending',
+  data.leaves.push({
+    id: getNextId(data, 'leaves'),
+    staffId: state.user.id,
+    studentId: null,
+    role: 'staff',
+    fromDate,
+    toDate,
+    reason,
+    status: 'pending',
   });
-  data.leaves.push({ id: docRef.id, staffId: state.user.id, studentId: null, role: 'staff', fromDate, toDate, reason, status: 'pending' });
+  saveData(data);
   alert('Leave request submitted!');
   navigateTo('apply-leave');
 }
@@ -1073,15 +1125,19 @@ function renderSendFeedback(container) {
   `;
 }
 
-async function submitFeedback() {
+function submitFeedback() {
   const data = state.data;
   const message = document.getElementById('feedbackMsg').value.trim();
   if (!message) { alert('Please write a message.'); return; }
-  const docRef = await db.collection('feedbacks').add({
-    staffId: state.user.id, studentId: null, role: 'staff',
-    message, reply: null,
+  data.feedbacks.push({
+    id: getNextId(data, 'feedbacks'),
+    staffId: state.user.id,
+    studentId: null,
+    role: 'staff',
+    message,
+    reply: null,
   });
-  data.feedbacks.push({ id: docRef.id, staffId: state.user.id, studentId: null, role: 'staff', message, reply: null });
+  saveData(data);
   alert('Feedback sent!');
   navigateTo('send-feedback');
 }
@@ -1194,18 +1250,25 @@ function renderStudentLeave(container) {
   `;
 }
 
-async function submitStudentLeave() {
+function submitStudentLeave() {
   const data = state.data;
   const fromDate = document.getElementById('sleaveFrom').value;
   const toDate = document.getElementById('sleaveTo').value;
   const reason = document.getElementById('sleaveReason').value.trim();
   if (!fromDate || !toDate || !reason) { alert('All fields are required.'); return; }
   if (fromDate > toDate) { alert('From date cannot be after To date.'); return; }
-  const docRef = await db.collection('leaves').add({
-    staffId: null, studentId: state.user.id, role: 'student',
-    fromDate, toDate, reason, status: 'pending',
+  const student = data.students.find(s => s.id === state.user.id);
+  data.leaves.push({
+    id: getNextId(data, 'leaves'),
+    staffId: null,
+    studentId: state.user.id,
+    role: 'student',
+    fromDate,
+    toDate,
+    reason,
+    status: 'pending',
   });
-  data.leaves.push({ id: docRef.id, staffId: null, studentId: state.user.id, role: 'student', fromDate, toDate, reason, status: 'pending' });
+  saveData(data);
   alert('Leave request submitted!');
   navigateTo('student-leave');
 }
@@ -1249,15 +1312,19 @@ function renderStudentFeedback(container) {
   `;
 }
 
-async function submitStudentFeedback() {
+function submitStudentFeedback() {
   const data = state.data;
   const message = document.getElementById('sfeedbackMsg').value.trim();
   if (!message) { alert('Please write a message.'); return; }
-  const docRef = await db.collection('feedbacks').add({
-    staffId: null, studentId: state.user.id, role: 'student',
-    message, reply: null,
+  data.feedbacks.push({
+    id: getNextId(data, 'feedbacks'),
+    staffId: null,
+    studentId: state.user.id,
+    role: 'student',
+    message,
+    reply: null,
   });
-  data.feedbacks.push({ id: docRef.id, staffId: null, studentId: state.user.id, role: 'student', message, reply: null });
+  saveData(data);
   alert('Feedback sent!');
   navigateTo('student-feedback');
 }
@@ -1318,80 +1385,52 @@ function updateClock() {
   });
 }
 
-// ========================= AUTH & APP LIFECYCLE =========================
-auth.onAuthStateChanged(async (firebaseUser) => {
-  if (firebaseUser) {
-    document.getElementById('loadingOverlay').style.display = 'flex';
-    try {
-      const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
-      if (!userDoc.exists) {
-        await firebaseUser.delete();
-        auth.signOut();
-        document.getElementById('loginError').textContent = 'User profile not found. Contact admin.';
-        document.getElementById('loadingOverlay').style.display = 'none';
-        return;
-      }
-      const profile = userDoc.data();
-      state.user = { id: firebaseUser.uid, name: profile.name, email: firebaseUser.email, role: profile.role };
-      await loadAllCollections();
-      state.dataReady = true;
-      document.getElementById('loginPage').style.display = 'none';
-      document.getElementById('appContainer').style.display = 'flex';
-      document.getElementById('loadingOverlay').style.display = 'none';
-      renderSidebar();
-      navigateTo('dashboard');
-      updateClock();
-      setInterval(updateClock, 60000);
-
-      document.getElementById('logoutBtn').addEventListener('click', () => {
-        auth.signOut();
-      });
-      document.getElementById('sidebarToggle').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-      });
-    } catch (e) {
-      console.error('Auth error:', e);
-      document.getElementById('loadingOverlay').style.display = 'none';
-      document.getElementById('loginError').textContent = 'Error loading data. Please try again.';
-    }
-  } else {
-    state.user = null;
-    state.dataReady = false;
-    state.data = { users: [], staff: [], students: [], courses: [], subjects: [], attendance: [], results: [], leaves: [], feedbacks: [] };
-    state.chartInstances = {};
-    document.getElementById('loginPage').style.display = 'flex';
-    document.getElementById('appContainer').style.display = 'none';
-    document.getElementById('loadingOverlay').style.display = 'none';
+// ========================= LOGIN =========================
+function initLogin() {
+  const session = getSession();
+  if (session) {
+    state.user = session;
+    state.data = getData();
+    startApp();
+    return;
   }
-});
-
-// ========================= LOGIN FORM =========================
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const role = document.getElementById('loginRole').value;
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
-    document.getElementById('loginError').textContent = '';
-
-    if (!role || !email || !password) {
-      document.getElementById('loginError').textContent = 'Please fill in all fields.';
-      return;
-    }
-
-    try {
-      const cred = await auth.signInWithEmailAndPassword(email, password);
-      const userDoc = await db.collection('users').doc(cred.user.uid).get();
-      if (!userDoc.exists || userDoc.data().role !== role) {
-        await auth.signOut();
-        document.getElementById('loginError').textContent = 'Invalid role for this account.';
-        return;
-      }
-    } catch (err) {
-      const msg = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
-        ? 'Invalid email or password.'
-        : err.message || 'Login failed. Try again.';
-      document.getElementById('loginError').textContent = msg;
+    const data = getData();
+    const user = data.users.find(u => u.email === email && u.password === password && u.role === role);
+    if (user) {
+      state.user = { id: user.id, name: user.name, email: user.email, role: user.role };
+      state.data = data;
+      setSession(state.user);
+      document.getElementById('loginError').textContent = '';
+      startApp();
+    } else {
+      document.getElementById('loginError').textContent = 'Invalid credentials. Check your role, email, and password.';
     }
   });
-});
+}
+
+function startApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appContainer').style.display = 'flex';
+  renderSidebar();
+  navigateTo('dashboard');
+  updateClock();
+  setInterval(updateClock, 60000);
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    clearSession();
+    location.reload();
+  });
+
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+}
+
+// ========================= INIT =========================
+document.addEventListener('DOMContentLoaded', initLogin);
