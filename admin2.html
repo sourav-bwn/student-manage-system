@@ -37,6 +37,45 @@
   --clay-shadow-raised: -6px -6px 12px rgba(255,255,255,0.7), 6px 6px 12px rgba(174,166,155,0.25);
   --sidebar-width: 270px;
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --chart-border: #f8f6f2;
+  --topbar-divider: rgba(174,166,155,0.15);
+  --table-hover: rgba(201, 168, 76, 0.04);
+  --scrollbar-thumb: rgba(174,166,155,0.3);
+  --scrollbar-thumb-hover: rgba(174,166,155,0.5);
+  --overlay-bg: rgba(28, 26, 23, 0.5);
+}
+
+[data-theme="dark"] {
+  --clay-bg: #1a1815;
+  --clay-card: #252220;
+  --clay-card-alt: #2d2a26;
+  --clay-sidebar: #12100e;
+  --clay-sidebar-hover: #1f1c19;
+  --gold: #d4af37;
+  --gold-light: #f0e4b0;
+  --gold-dark: #b8962a;
+  --espresso: #ede8df;
+  --warm-gray: #a09888;
+  --cream: #ede8df;
+  --success: #4caf7a;
+  --success-light: #1e2f26;
+  --danger: #d46060;
+  --danger-light: #2e1c1c;
+  --info: #5a9bc7;
+  --info-light: #1a2630;
+  --warning: #d4a53a;
+  --warning-light: #2e2818;
+  --clay-shadow: -8px -8px 16px rgba(0,0,0,0.35), 8px 8px 16px rgba(0,0,0,0.45);
+  --clay-shadow-sm: -4px -4px 10px rgba(0,0,0,0.3), 4px 4px 10px rgba(0,0,0,0.4);
+  --clay-shadow-inset: inset -4px -4px 8px rgba(0,0,0,0.3), inset 4px 4px 8px rgba(0,0,0,0.4);
+  --clay-shadow-lg: -12px -12px 24px rgba(0,0,0,0.35), 12px 12px 24px rgba(0,0,0,0.5);
+  --clay-shadow-raised: -6px -6px 12px rgba(0,0,0,0.3), 6px 6px 12px rgba(0,0,0,0.4);
+  --chart-border: #252220;
+  --topbar-divider: rgba(255,255,255,0.06);
+  --table-hover: rgba(212, 175, 55, 0.06);
+  --scrollbar-thumb: rgba(255,255,255,0.12);
+  --scrollbar-thumb-hover: rgba(255,255,255,0.2);
+  --overlay-bg: rgba(0,0,0,0.6);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -136,7 +175,7 @@ body {
 .nav-item.active {
   background: linear-gradient(135deg, rgba(201, 168, 76, 0.12), rgba(201, 168, 76, 0.05));
   color: var(--gold);
-  box-shadow: inset 2px 2px 4px rgba(0,0,0,0.2), inset -1px -1px 2px rgba(255,255,255,0.05);
+  box-shadow: var(--clay-shadow-inset);
 }
 
 .nav-item i { width: 20px; text-align: center; font-size: 16px; }
@@ -168,7 +207,7 @@ body {
   align-items: center;
   padding: 18px 32px;
   background: var(--clay-card);
-  border-bottom: 1px solid rgba(174,166,155,0.15);
+  border-bottom: 1px solid var(--topbar-divider);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -179,6 +218,34 @@ body {
 }
 
 .sidebar-toggle { display: none; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--espresso); }
+
+.theme-toggle {
+  background: var(--clay-bg);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--warm-gray);
+  font-size: 17px;
+  box-shadow: var(--clay-shadow-sm);
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  box-shadow: var(--clay-shadow);
+  color: var(--gold);
+  transform: scale(1.05);
+}
+
+.theme-toggle:active {
+  box-shadow: var(--clay-shadow-inset);
+  transform: scale(0.95);
+}
 
 .topbar h2 {
   font-size: 20px;
@@ -429,7 +496,7 @@ td {
 }
 
 tr:last-child td { border-bottom: none; }
-tr:hover td { background: rgba(201, 168, 76, 0.04); }
+tr:hover td { background: var(--table-hover); }
 
 .badge {
   display: inline-block;
@@ -485,7 +552,7 @@ tr:hover td { background: rgba(201, 168, 76, 0.04); }
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(28, 26, 23, 0.5);
+  background: var(--overlay-bg);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
@@ -572,8 +639,8 @@ tr:hover td { background: rgba(201, 168, 76, 0.04); }
 /* ====== SCROLLBAR ====== */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(174,166,155,0.3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(174,166,155,0.5); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
 /* ====== RESPONSIVE ====== */
 @media (max-width: 768px) {
@@ -626,6 +693,9 @@ tr:hover td { background: rgba(201, 168, 76, 0.04); }
       <h2 id="pageTitle">Dashboard</h2>
       <div class="topbar-right">
         <span id="currentDateTime" class="datetime"></span>
+        <button id="themeToggle" class="theme-toggle" title="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
       </div>
     </header>
     <main id="mainContent" class="main-content"></main>
@@ -1334,7 +1404,7 @@ function renderChart(canvasId, type, labels, data, colors) {
       datasets: [{
         data,
         backgroundColor: colors || ['#c9a84c', '#a8882e', '#e8d5a0', '#8b7d6b', '#5c5040', '#2d2420'],
-        borderColor: '#f8f6f2',
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-border').trim() || '#f8f6f2',
         borderWidth: 3,
       }],
     },
@@ -1390,6 +1460,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('sidebarToggle').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  const savedTheme = localStorage.getItem('admin2_theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.querySelector('#themeToggle i').className = 'fas fa-sun';
+  }
+
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('admin2_theme', 'light');
+      document.querySelector('#themeToggle i').className = 'fas fa-moon';
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('admin2_theme', 'dark');
+      document.querySelector('#themeToggle i').className = 'fas fa-sun';
+    }
   });
 });
 </script>
