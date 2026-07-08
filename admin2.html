@@ -758,7 +758,8 @@ const defaultData = {
   results: [],
   leaves: [],
   feedbacks: [],
-  nextId: { users: 4, staff: 3, students: 7, courses: 4, subjects: 11, attendance: 1, results: 1, leaves: 1, feedbacks: 1 },
+  homework: [],
+  nextId: { users: 4, staff: 3, students: 7, courses: 4, subjects: 11, attendance: 1, results: 1, leaves: 1, feedbacks: 1, homeworks: 1 },
 };
 
 function getData() {
@@ -823,6 +824,7 @@ const NAV_ITEMS = {
     { id: 'courses', label: 'Manage Courses', icon: 'fa-book' },
     { id: 'subjects', label: 'Manage Subjects', icon: 'fa-flask' },
     { id: 'attendance', label: 'View Attendance', icon: 'fa-calendar-check' },
+    { id: 'homework', label: 'Manage Homework', icon: 'fa-pencil-alt' },
     { id: 'leaves', label: 'Leave Requests', icon: 'fa-file-alt' },
     { id: 'feedback', label: 'Feedback', icon: 'fa-comments' },
   ],
@@ -863,6 +865,7 @@ function renderPage(page) {
     'courses': 'Manage Courses',
     'subjects': 'Manage Subjects',
     'attendance': 'View Attendance',
+    'homework': 'Manage Homework',
     'leaves': 'Leave Requests',
     'feedback': 'Feedback',
   };
@@ -874,6 +877,7 @@ function renderPage(page) {
     courses: renderCourses,
     subjects: renderSubjects,
     attendance: renderAttendance,
+    homework: renderHomework,
     leaves: renderLeaves,
     feedback: renderFeedback,
   };
@@ -888,7 +892,7 @@ function renderDashboard(container) {
 }
 
 function renderAdminDashboard(container, data) {
-  const totalStaff = data.staff.length;
+  const totalHomework = data.homework.length;
   const totalStudents = data.students.length;
   const totalCourses = data.courses.length;
   const totalSubjects = data.subjects.length;
@@ -897,7 +901,7 @@ function renderAdminDashboard(container, data) {
 
   container.innerHTML = `
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-chalkboard-teacher"></i></div><div class="stat-info"><h3>${totalStaff}</h3><p>Total Staff</p></div></div>
+      <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-pencil-alt"></i></div><div class="stat-info"><h3>${totalHomework}</h3><p>Total Homework</p></div></div>
       <div class="stat-card"><div class="stat-icon green"><i class="fas fa-user-graduate"></i></div><div class="stat-info"><h3>${totalStudents}</h3><p>Total Students</p></div></div>
       <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-book"></i></div><div class="stat-info"><h3>${totalCourses}</h3><p>Courses</p></div></div>
       <div class="stat-card"><div class="stat-icon cyan"><i class="fas fa-flask"></i></div><div class="stat-info"><h3>${totalSubjects}</h3><p>Subjects</p></div></div>
@@ -1389,6 +1393,110 @@ function replyFeedback(id) {
       saveData(data); closeModal(); navigateTo('feedback');
     }
   );
+}
+
+// ========== ADMIN: MANAGE HOMEWORK ==========
+function renderHomework(container) {
+  const data = state.data;
+  container.innerHTML = `
+    <div class="section-card">
+      <div class="section-header">
+        <h3><i class="fas fa-pencil-alt"></i> Homework Assignments</h3>
+        <div class="section-actions">
+          <button class="btn btn-primary btn-sm" onclick="openHomeworkModal()"><i class="fas fa-plus"></i> Add Homework</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Title</th><th>Subject</th><th>Course</th><th>Semester</th><th>Due Date</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${data.homework.length ? data.homework.map((h, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td><strong>${h.title}</strong></td>
+                <td>${getSubjectName(data, h.subjectId)}</td>
+                <td>${getCourseName(data, h.courseId)}</td>
+                <td><span class="badge badge-info">Sem ${h.semester}</span></td>
+                <td>${formatDate(h.dueDate)}</td>
+                <td>
+                  <div class="action-btns">
+                    <button class="btn btn-info btn-sm" onclick="openHomeworkModal(${h.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteHomework(${h.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('') : `<tr><td colspan="7"><div class="empty-state"><p>No homework assignments yet.</p></div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function openHomeworkModal(id) {
+  const data = state.data;
+  const hw = id ? data.homework.find(h => h.id === id) : null;
+  showModal(
+    hw ? 'Edit Homework' : 'Add Homework',
+    `
+      <div class="form-grid">
+        <div class="form-group full">
+          <label><i class="fas fa-heading"></i> Title</label>
+          <input type="text" id="hwTitle" value="${hw ? hw.title : ''}" placeholder="e.g. Chapter 5 Exercises" />
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-flask"></i> Subject</label>
+          <select id="hwSubject">
+            <option value="">Select Subject</option>
+            ${data.subjects.map(s => `<option value="${s.id}" ${hw && hw.subjectId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-book"></i> Course</label>
+          <select id="hwCourse">
+            ${data.courses.map(c => `<option value="${c.id}" ${hw && hw.courseId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-layer-group"></i> Semester</label>
+          <select id="hwSemester">
+            ${[1,2,3,4,5,6].map(s => `<option value="${s}" ${hw && hw.semester === s ? 'selected' : ''}>Semester ${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-calendar"></i> Due Date</label>
+          <input type="date" id="hwDueDate" value="${hw ? hw.dueDate : ''}" />
+        </div>
+        <div class="form-group full">
+          <label><i class="fas fa-align-left"></i> Description</label>
+          <textarea id="hwDesc" placeholder="Homework description...">${hw ? hw.description || '' : ''}</textarea>
+        </div>
+      </div>
+    `,
+    () => {
+      const title = document.getElementById('hwTitle').value.trim();
+      const subjectId = parseInt(document.getElementById('hwSubject').value);
+      const courseId = parseInt(document.getElementById('hwCourse').value);
+      const semester = parseInt(document.getElementById('hwSemester').value);
+      const dueDate = document.getElementById('hwDueDate').value;
+      const description = document.getElementById('hwDesc').value.trim();
+      if (!title || !subjectId || !courseId || !semester || !dueDate) { alert('Title, Subject, Course, Semester, and Due Date are required.'); return; }
+      if (id) {
+        const h = data.homework.find(x => x.id === id);
+        if (h) Object.assign(h, { title, subjectId, courseId, semester, dueDate, description });
+      } else {
+        data.homework.push({ id: getNextId(data, 'homeworks'), title, subjectId, courseId, semester, dueDate, description });
+      }
+      saveData(data); closeModal(); navigateTo('homework');
+    }
+  );
+}
+
+function deleteHomework(id) {
+  if (!confirm('Delete this homework assignment?')) return;
+  state.data.homework = state.data.homework.filter(h => h.id !== id);
+  saveData(state.data);
+  navigateTo('homework');
 }
 
 function renderChart(canvasId, type, labels, data, colors) {
