@@ -270,3 +270,14 @@ tr:hover td { background: var(--gray-50); }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+/* Keep the demo-data warning visible without overpowering the sign-in form. */
+.login-footer .demo-warning {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #7c2d12;
+  line-height: 1.45;
+}
