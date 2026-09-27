@@ -32,6 +32,8 @@ A full-featured student management dashboard built with vanilla HTML, CSS, and J
 
 https://sourav-bwn.github.io/student-manage-system/
 
+> **Demo only. Do not use real student or staff records here.** This is a static, browser-local prototype, not a secure multi-user system. Data and passwords are stored in your browser's `localStorage`, and the demo credentials and login checks are in client-side code. Anyone using that browser profile can inspect the data; signing in as a role does not provide server-side access control. Changes do not sync between devices or browsers, and clearing browser storage removes them. For real records, use a backend with authentication, authorization, and protected storage.
+
 ## Login Credentials
 
 | Role   | Email               | Password   |
