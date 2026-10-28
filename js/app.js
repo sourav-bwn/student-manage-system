@@ -908,16 +908,24 @@ function submitAttendance() {
   students.forEach(s => {
     const status = document.querySelector(`input[name="att_${s.id}"]:checked`);
     if (status) {
-      data.attendance.push({
-        id: getNextId(data, 'attendance'),
-        studentId: s.id,
-        courseId,
-        subjectId,
-        semester,
-        date,
-        status: status.value,
-        markedBy: state.user.id,
-      });
+      // Re-marking the same subject on the same date updates the existing
+      // record instead of duplicating it (duplicates skewed every stat).
+      const rec = data.attendance.find(a => a.studentId === s.id && a.subjectId === subjectId && a.date === date);
+      if (rec) {
+        rec.status = status.value;
+        rec.markedBy = state.user.id;
+      } else {
+        data.attendance.push({
+          id: getNextId(data, 'attendance'),
+          studentId: s.id,
+          courseId,
+          subjectId,
+          semester,
+          date,
+          status: status.value,
+          markedBy: state.user.id,
+        });
+      }
       count++;
     }
   });
