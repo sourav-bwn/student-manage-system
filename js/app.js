@@ -1010,9 +1010,10 @@ function openResultModal(id) {
     () => {
       const studentId = parseInt(document.getElementById('resultStudent').value);
       const subjectId = parseInt(document.getElementById('resultSubject').value);
-      const score = parseInt(document.getElementById('resultScore').value);
+      const rawScore = parseInt(document.getElementById('resultScore').value);
+      const score = Math.min(100, Math.max(0, rawScore));
       const remarks = document.getElementById('resultRemarks').value.trim();
-      if (!studentId || !subjectId || isNaN(score)) { alert('Student, Subject, and Score are required.'); return; }
+      if (!studentId || !subjectId || isNaN(rawScore)) { alert('Student, Subject, and Score are required.'); return; }
       if (id) {
         const r = data.results.find(x => x.id === id);
         if (r) Object.assign(r, { studentId, subjectId, score, remarks });
