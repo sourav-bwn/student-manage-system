@@ -135,6 +135,16 @@ function formatDate(d) {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+// Local calendar day as YYYY-MM-DD. toISOString gives the UTC day, which is
+// still YESTERDAY for users east of UTC in the hours after local midnight
+// (e.g. 00:30 in India is 19:00 UTC the day before).
+function localToday(now = new Date()) {
+  const n = now;
+  const m = String(n.getMonth() + 1).padStart(2, '0');
+  const d = String(n.getDate()).padStart(2, '0');
+  return `${n.getFullYear()}-${m}-${d}`;
+}
+
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -841,7 +851,7 @@ function renderTakeAttendance(container) {
           </div>
           <div class="form-group">
             <label>Date</label>
-            <input type="date" id="attDate" value="${new Date().toISOString().split('T')[0]}" />
+            <input type="date" id="attDate" value="${localToday()}" />
           </div>
           <div class="form-group">
             <label>Semester</label>
@@ -1026,11 +1036,11 @@ function renderApplyLeave(container) {
         <div class="form-grid">
           <div class="form-group">
             <label>From Date</label>
-            <input type="date" id="leaveFrom" value="${new Date().toISOString().split('T')[0]}" />
+            <input type="date" id="leaveFrom" value="${localToday()}" />
           </div>
           <div class="form-group">
             <label>To Date</label>
-            <input type="date" id="leaveTo" value="${new Date().toISOString().split('T')[0]}" />
+            <input type="date" id="leaveTo" value="${localToday()}" />
           </div>
           <div class="form-group full">
             <label>Reason</label>
@@ -1212,11 +1222,11 @@ function renderStudentLeave(container) {
         <div class="form-grid">
           <div class="form-group">
             <label>From Date</label>
-            <input type="date" id="sleaveFrom" value="${new Date().toISOString().split('T')[0]}" />
+            <input type="date" id="sleaveFrom" value="${localToday()}" />
           </div>
           <div class="form-group">
             <label>To Date</label>
-            <input type="date" id="sleaveTo" value="${new Date().toISOString().split('T')[0]}" />
+            <input type="date" id="sleaveTo" value="${localToday()}" />
           </div>
           <div class="form-group full">
             <label>Reason</label>
