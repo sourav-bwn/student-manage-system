@@ -908,16 +908,24 @@ function submitAttendance() {
   students.forEach(s => {
     const status = document.querySelector(`input[name="att_${s.id}"]:checked`);
     if (status) {
-      data.attendance.push({
-        id: getNextId(data, 'attendance'),
-        studentId: s.id,
-        courseId,
-        subjectId,
-        semester,
-        date,
-        status: status.value,
-        markedBy: state.user.id,
-      });
+      // Re-marking the same subject on the same date updates the existing
+      // record instead of duplicating it (duplicates skewed every stat).
+      const rec = data.attendance.find(a => a.studentId === s.id && a.subjectId === subjectId && a.date === date);
+      if (rec) {
+        rec.status = status.value;
+        rec.markedBy = state.user.id;
+      } else {
+        data.attendance.push({
+          id: getNextId(data, 'attendance'),
+          studentId: s.id,
+          courseId,
+          subjectId,
+          semester,
+          date,
+          status: status.value,
+          markedBy: state.user.id,
+        });
+      }
       count++;
     }
   });
@@ -1002,9 +1010,10 @@ function openResultModal(id) {
     () => {
       const studentId = parseInt(document.getElementById('resultStudent').value);
       const subjectId = parseInt(document.getElementById('resultSubject').value);
-      const score = parseInt(document.getElementById('resultScore').value);
+      const rawScore = parseInt(document.getElementById('resultScore').value);
+      const score = Math.min(100, Math.max(0, rawScore));
       const remarks = document.getElementById('resultRemarks').value.trim();
-      if (!studentId || !subjectId || isNaN(score)) { alert('Student, Subject, and Score are required.'); return; }
+      if (!studentId || !subjectId || isNaN(rawScore)) { alert('Student, Subject, and Score are required.'); return; }
       if (id) {
         const r = data.results.find(x => x.id === id);
         if (r) Object.assign(r, { studentId, subjectId, score, remarks });
