@@ -42,7 +42,7 @@ https://sourav-bwn.github.io/student-manage-system/
 | Staff  | staff@staff.com     | staff123   |
 | Student| student@student.com | student123 |
 
-When admin adds a new student/staff, a login account is auto-created with the email provided and default password `student123` (staff) or `student123` (student).
+When admin adds a new student/staff, a login account is auto-created with the email provided and default password `staff123` (staff) or `student123` (student).
 
 ## Tech Stack
 
